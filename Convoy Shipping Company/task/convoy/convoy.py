@@ -1,7 +1,6 @@
 import pandas as pd
 import sqlite3
 from re import findall
-from sqlalchemy import create_engine
 
 
 def xlsx_to_csv():
