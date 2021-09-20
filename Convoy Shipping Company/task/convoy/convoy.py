@@ -1,6 +1,7 @@
 import pandas as pd
 import sqlite3
 from re import findall
+from sqlalchemy import create_engine
 
 
 def xlsx_to_csv():
@@ -25,7 +26,7 @@ def fix_csv():
     file_df.to_csv(file_name, index=False)
 
 
-def add_to_db():
+def csv_to_db():
     global file_name
     db_name = file_name.replace("[CHECKED].csv", ".s3db")
     connection = sqlite3.Connection(f'{db_name}')
@@ -37,6 +38,18 @@ def add_to_db():
     connection.commit()
     connection.close()
     print(f'{file_df.shape[0]} record{was_or_were(file_df.shape[0])} inserted into {db_name}')
+    file_name = file_name.replace("[CHECKED].csv", ".s3db")
+
+
+def from_db_to_json():
+    global file_name
+    file_df = pd.read_sql_table("convoy", f'sqlite:///{file_name}')
+    file_name = file_name.replace(".s3db", ".json")
+    with open(f'{file_name}', 'w') as in_file:
+        in_file.write('{"convoy":')
+        in_file.write(file_df.to_json(orient="records"))
+        in_file.write('}')
+    print(f'{file_df.shape[0]} vehicle{was_or_were(file_df.shape[0])} saved into {file_name}')
 
 
 def was_or_were(number):
@@ -50,9 +63,14 @@ file_name = input("Input file name\n")
 if ".xlsx" in file_name:
     xlsx_to_csv()
     fix_csv()
-    add_to_db()
+    csv_to_db()
+    from_db_to_json()
 elif "[CHECKED].csv" in file_name:
-    add_to_db()
+    csv_to_db()
+    from_db_to_json()
 elif ".csv" in file_name:
     fix_csv()
-    add_to_db()
+    csv_to_db()
+    from_db_to_json()
+elif ".s3db" in file_name:
+    from_db_to_json()
